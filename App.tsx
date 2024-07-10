@@ -1,117 +1,74 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
+import React, { useEffect, useState } from 'react';
+import { View, Text, Image, StyleSheet, FlatList } from 'react-native';
 
-import React from 'react';
-import type {PropsWithChildren} from 'react';
-import {
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  useColorScheme,
-  View,
-} from 'react-native';
+const App = () => {
+  const [menuData, setMenuData] = useState([]);
+  const [filteredMenuData, setFilteredMenuData] = useState([]);
 
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+  useEffect(() => {
+    fetch('https://6639cbd81ae792804beccbdc.mockapi.io/location/v1/menu')
+      .then((response) => response.json())
+      .then((menu) => {
+        fetch('https://6639cbd81ae792804beccbdc.mockapi.io/location/v1/package')
+          .then((response) => response.json())
+          .then((packages) => {
+            const selectedPackage = packages.find(pkg => pkg.packageID === "1");
+            if (selectedPackage) {
+              const filteredMenu = menu.filter(menuItem =>
+                selectedPackage.menuSelection.includes(menuItem.menuID)
+              );
+              setFilteredMenuData(filteredMenu);
+            }
+            setMenuData(menu);
+          })
+          .catch((error) => console.error(error));
+      })
+      .catch((error) => console.error(error));
+  }, []);
 
-type SectionProps = PropsWithChildren<{
-  title: string;
-}>;
-
-function Section({children, title}: SectionProps): JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-  return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
+  const renderItem = ({ item }) => (
+    <View style={styles.menuItem}>
+      <Image
+        style={styles.image}
+        source={{ uri: `data:image/png;base64,${item.pic}` }}
+      />
+      <Text style={styles.name}>{item.name}</Text>
     </View>
   );
-}
-
-function App(): JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
-  };
 
   return (
-    <SafeAreaView style={backgroundStyle}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
+    <View style={styles.container}>
+      <FlatList
+        data={filteredMenuData}
+        renderItem={renderItem}
+        keyExtractor={(item) => item.menuID.toString()}
+        numColumns={2} 
       />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
-        <Header />
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+    </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
+  container: {
+    flex: 1,
+    padding: 10,
   },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
+  menuItem: {
+    flex: 1,
+    margin: 10,
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0', // Background color for the rectangle
+    padding: 15, // Padding inside the rectangle
+    borderRadius: 10, // Rounded corners
   },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
+  image: {
+    width: 100,
+    height: 100,
+    marginBottom: 10,
   },
-  highlight: {
-    fontWeight: '700',
+  name: {
+    fontSize: 16,
+    textAlign: 'center',
   },
 });
 
