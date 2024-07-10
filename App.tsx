@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Image, StyleSheet, FlatList } from 'react-native';
+import { View, Text, Image, StyleSheet, FlatList, Button } from 'react-native';
+import uuid from 'react-native-uuid';
 
 const App = () => {
   const [menuData, setMenuData] = useState([]);
   const [filteredMenuData, setFilteredMenuData] = useState([]);
+  const [generatedUUID, setGeneratedUUID] = useState('');
 
   useEffect(() => {
     fetch('https://6639cbd81ae792804beccbdc.mockapi.io/location/v1/menu')
@@ -26,6 +28,11 @@ const App = () => {
       .catch((error) => console.error(error));
   }, []);
 
+  const generateUUID = () => {
+    const newUUID = uuid.v4();
+    setGeneratedUUID(newUUID);
+  };
+
   const renderItem = ({ item }) => (
     <View style={styles.menuItem}>
       <Image
@@ -38,11 +45,16 @@ const App = () => {
 
   return (
     <View style={styles.container}>
+      <View style={styles.header}>
+        <Button title="Generate UUID" onPress={generateUUID} />
+        {generatedUUID ? <Text style={styles.uuidText}>{generatedUUID}</Text> : null}
+      </View>
       <FlatList
         data={filteredMenuData}
         renderItem={renderItem}
-        keyExtractor={(item) => item.menuID.toString()}
-        numColumns={2} 
+        keyExtractor={(item) => item.menuID}
+        numColumns={1}
+        contentContainerStyle={styles.list}
       />
     </View>
   );
@@ -51,23 +63,45 @@ const App = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 10,
+    padding: 16,
+    backgroundColor: '#fff',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  uuidText: {
+    marginLeft: 10,
+    fontSize: 16,
+    fontWeight: 'bold',
+    flex: 1, // This ensures the text takes available space
+  },
+  list: {
+    justifyContent: 'center',
   },
   menuItem: {
     flex: 1,
-    margin: 10,
+    flexDirection: 'column',
+    margin: 8,
+    backgroundColor: '#f8f8f8',
+    borderRadius: 8,
+    overflow: 'hidden',
     alignItems: 'center',
-    backgroundColor: '#f0f0f0', // Background color for the rectangle
-    padding: 15, // Padding inside the rectangle
-    borderRadius: 10, // Rounded corners
+    justifyContent: 'center',
+    width: '100%',
+    height: 150,
   },
   image: {
     width: 100,
     height: 100,
-    marginBottom: 10,
+    resizeMode: 'cover',
   },
   name: {
+    marginTop: 8,
     fontSize: 16,
+    fontWeight: 'bold',
     textAlign: 'center',
   },
 });
