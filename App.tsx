@@ -1,32 +1,63 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, Image, StyleSheet, FlatList, Button } from 'react-native';
 import uuid from 'react-native-uuid';
+import { 
+  initDatabase, 
+  insertLocalDB, 
+  getLocalDB 
+} from './database';
 
 const App = () => {
-  const [menuData, setMenuData] = useState([]);
-  const [filteredMenuData, setFilteredMenuData] = useState([]);
+  const [selectedMenu, setSelectedMenu] = useState([]);
   const [generatedUUID, setGeneratedUUID] = useState('');
 
   useEffect(() => {
-    fetch('https://6639cbd81ae792804beccbdc.mockapi.io/location/v1/menu')
-      .then((response) => response.json())
-      .then((menu) => {
-        fetch('https://6639cbd81ae792804beccbdc.mockapi.io/location/v1/package')
-          .then((response) => response.json())
-          .then((packages) => {
-            const selectedPackage = packages.find(pkg => pkg.packageID === "1");
-            if (selectedPackage) {
-              const filteredMenu = menu.filter(menuItem =>
-                selectedPackage.menuSelection.includes(menuItem.menuID)
-              );
-              setFilteredMenuData(filteredMenu);
-            }
-            setMenuData(menu);
-          })
-          .catch((error) => console.error(error));
-      })
-      .catch((error) => console.error(error));
+    initDatabase();
+    handleMenu();
   }, []);
+
+  const handleMenu = async () => {
+    // inisialisasi id
+    const id = "1";
+
+    // inisialisasi listSelectedMenu
+    let listSelectedMenu = [];
+
+    // get menuSelection
+    try {
+      const response = await fetch(`https://6639cbd81ae792804beccbdc.mockapi.io/location/v1/package/${id}`, {
+        method: 'GET',
+      });
+      const data = await response.json();
+      listSelectedMenu = data.menuSelection;
+    } catch (err) {
+      console.log(err);
+      return; 
+    }
+
+    try {
+      const response = await fetch('https://6639cbd81ae792804beccbdc.mockapi.io/location/v1/menu', {
+        method: 'GET',
+      });
+      const allMenus = await response.json();
+
+      const listMenu = allMenus.filter(menu => listSelectedMenu.includes(menu.menuID));
+
+      try {
+        for (const menu of listMenu) {
+          await insertLocalDB(menu);
+        }
+
+        const localData = await getLocalDB();
+        setSelectedMenu(localData);
+      } catch (error) {
+        console.log(error);
+      }
+    } catch (err) {
+      console.log(err);
+      return; 
+    }
+  };
 
   const generateUUID = () => {
     const newUUID = uuid.v4();
@@ -35,24 +66,21 @@ const App = () => {
 
   const renderItem = ({ item }) => (
     <View style={styles.menuItem}>
-      <Image
-        style={styles.image}
-        source={{ uri: `data:image/png;base64,${item.pic}` }}
-      />
+      <Image style={styles.image} source={{ uri: `data:image/png;base64,${item.pic}` }} />
       <Text style={styles.name}>{item.name}</Text>
     </View>
   );
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Button title="Generate UUID" onPress={generateUUID} />
-        {generatedUUID ? <Text style={styles.uuidText}>{generatedUUID}</Text> : null}
-      </View>
+      <Button title="Generate UUID" onPress={generateUUID} />
+        {generatedUUID ? 
+        <Text style={styles.uuidText}>{generatedUUID}</Text> : null}
+      
       <FlatList
-        data={filteredMenuData}
+        data={selectedMenu}
         renderItem={renderItem}
-        keyExtractor={(item) => item.menuID}
+        keyExtractor={(item) => item.menuID.toString()}
         numColumns={1}
         contentContainerStyle={styles.list}
       />
@@ -67,16 +95,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   header: {
-    flexDirection: 'row',
+    paddingVertical: 10,
+    flex: 1,
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 16,
   },
   uuidText: {
-    marginLeft: 10,
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: 'bold',
-    flex: 1, // This ensures the text takes available space
+    color: 'black',
+    textAlign: 'center',
   },
   list: {
     justifyContent: 'center',
